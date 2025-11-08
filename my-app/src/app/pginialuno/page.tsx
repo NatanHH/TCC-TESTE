@@ -184,39 +184,7 @@ export default function Page(): JSX.Element {
     // Try to discover which turma(s) the aluno belongs to so we can filter atividades
     async function discoverAlunoTurmaIds(): Promise<number[] | null> {
       try {
-        // Primary: /api/aluno/me may return turma(s)
-        const meRes = await fetch("/api/aluno/me", {
-          signal: ctrl.signal,
-          headers: { Accept: "application/json" },
-        });
-        if (meRes.ok) {
-          const body = await meRes.json().catch(() => null);
-          if (body) {
-            // common shapes: { turmas: [{ idTurma }] } or { turma: { idTurma } } or { turmaIds: [1,2] }
-            if (Array.isArray(body.turmas)) {
-              const ids = body.turmas
-                .map((t: unknown) => extractIdFrom(t))
-                .filter((n: number | null): n is number => n !== null);
-              if (ids.length) return ids;
-            }
-            if (Array.isArray(body.turmaIds)) {
-              const ids = body.turmaIds
-                .map((n: unknown) => toNumberOrNull(n))
-                .filter((n: number | null): n is number => n !== null);
-              if (ids.length) return ids;
-            }
-            if (body.turma && (body.turma.idTurma || body.turma.id)) {
-              const id = Number(body.turma.idTurma ?? body.turma.id);
-              if (Number.isFinite(id)) return [id];
-            }
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-
-      try {
-        // Fallback: /api/turmas?alunoId=... may return an array of turmas
+        // Primary: ask the turmas endpoint for turmas that include this aluno
         const r = await fetch(
           `/api/turmas?alunoId=${encodeURIComponent(String(effectiveId))}`,
           {
@@ -237,6 +205,37 @@ export default function Page(): JSX.Element {
               .map((t: unknown) => extractIdFrom(t))
               .filter((n: number | null): n is number => n !== null);
             if (ids.length) return ids;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+
+      // fallback: try older endpoint shapes (/api/aluno/me) if present
+      try {
+        const meRes = await fetch("/api/aluno/me", {
+          signal: ctrl.signal,
+          headers: { Accept: "application/json" },
+        });
+        if (meRes.ok) {
+          const body = await meRes.json().catch(() => null);
+          if (body) {
+            if (Array.isArray(body.turmas)) {
+              const ids = body.turmas
+                .map((t: unknown) => extractIdFrom(t))
+                .filter((n: number | null): n is number => n !== null);
+              if (ids.length) return ids;
+            }
+            if (Array.isArray(body.turmaIds)) {
+              const ids = body.turmaIds
+                .map((n: unknown) => toNumberOrNull(n))
+                .filter((n: number | null): n is number => n !== null);
+              if (ids.length) return ids;
+            }
+            if (body.turma && (body.turma.idTurma || body.turma.id)) {
+              const id = Number(body.turma.idTurma ?? body.turma.id);
+              if (Number.isFinite(id)) return [id];
+            }
           }
         }
       } catch {
@@ -353,25 +352,39 @@ export default function Page(): JSX.Element {
         !alunoEmail ||
         alunoEmail.length === 0
       ) {
+        // Prefer explicit aluno endpoint to fetch this student's profile when we have an id
         try {
-          const res = await fetch("/api/aluno/me");
-          if (res.ok) {
-            const body = await res.json().catch(() => null);
-            if (body) {
-              if (!alunoNome || alunoNome.length === 0)
-                setAlunoNome(body.nome ?? body.name ?? "");
-              if (!alunoEmail || alunoEmail.length === 0)
-                setAlunoEmail(body.email ?? "");
-              try {
-                if (typeof window !== "undefined") {
-                  if (body.nome) localStorage.setItem("alunoNome", body.nome);
-                  if (body.email)
-                    localStorage.setItem("alunoEmail", body.email);
-                  if (body.idAluno)
-                    localStorage.setItem("idAluno", String(body.idAluno));
-                }
-              } catch {}
+          let body: any = null;
+          if (alunoId) {
+            const r = await fetch(
+              `/api/alunos/aluno?id=${encodeURIComponent(String(alunoId))}`
+            );
+            if (r.ok) body = await r.json().catch(() => null);
+          }
+
+          // fallback to older endpoint shape if present
+          if (!body) {
+            try {
+              const res = await fetch("/api/aluno/me");
+              if (res.ok) body = await res.json().catch(() => null);
+            } catch {
+              /* ignore */
             }
+          }
+
+          if (body) {
+            if (!alunoNome || alunoNome.length === 0)
+              setAlunoNome(body.nome ?? body.name ?? "");
+            if (!alunoEmail || alunoEmail.length === 0)
+              setAlunoEmail(body.email ?? "");
+            try {
+              if (typeof window !== "undefined") {
+                if (body.nome) localStorage.setItem("alunoNome", body.nome);
+                if (body.email) localStorage.setItem("alunoEmail", body.email);
+                if (body.idAluno)
+                  localStorage.setItem("idAluno", String(body.idAluno));
+              }
+            } catch {}
           }
         } catch {
           // ignore errors; endpoint might not exist

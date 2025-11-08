@@ -1,0 +1,46 @@
+name: Deploy Prisma to Supabase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (my-app)
+        working-directory: my-app
+        run: |
+          npm ci
+
+      - name: Generate Prisma client
+        working-directory: my-app
+        run: npx prisma generate --schema=./prisma/schema.prisma
+
+      - name: Apply migrations or push schema
+        working-directory: my-app
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations)" ]; then
+            echo "Found migrations -> running prisma migrate deploy"
+            npx prisma migrate deploy --schema=./prisma/schema.prisma
+          else
+            echo "No migrations found -> running prisma db push"
+            npx prisma db push --schema=./prisma/schema.prisma
+          fi
+
+      - name: Generate Prisma client (post-deploy)
+        working-directory: my-app
+        run: npx prisma generate --schema=./prisma/schema.prisma

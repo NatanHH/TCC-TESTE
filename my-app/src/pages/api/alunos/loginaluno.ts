@@ -42,19 +42,31 @@ export default async function handler(
       return res.status(401).json({ error: "Email ou senha incorretos" });
     }
     const stored = aluno.senha as string | null;
+    // detect whether the stored value looks like a bcrypt hash (avoid relying on exceptions)
+    const looksLikeBcryptHash =
+      typeof stored === "string" && /^\$2[aby]\$/.test(stored);
     console.log(
       "[loginaluno] aluno found, id:",
       aluno.idAluno,
-      "stored password type:",
-      typeof stored
+      "storedLooksLikeHash:",
+      looksLikeBcryptHash
     );
+
     let passwordMatches = false;
     if (typeof stored === "string") {
-      try {
-        passwordMatches = await bcrypt.compare(senha, stored);
-      } catch {
-        // fallback to direct compare if stored isn't a bcrypt hash
+      if (looksLikeBcryptHash) {
+        try {
+          passwordMatches = await bcrypt.compare(senha, stored);
+          console.log("[loginaluno] bcrypt.compare result:", passwordMatches);
+        } catch (e) {
+          // if bcrypt throws for some unexpected reason, log and treat as non-match
+          console.error("[loginaluno] bcrypt.compare threw:", e);
+          passwordMatches = false;
+        }
+      } else {
+        // stored doesn't look like a bcrypt hash — compare directly
         passwordMatches = senha === stored;
+        console.log("[loginaluno] direct-compare result:", passwordMatches);
       }
     }
 

@@ -522,7 +522,7 @@ export default function PainelAdm() {
         <div className={styles.logoContainer}>
           <Image
             className={styles.logoImg}
-            src="/images/Logopng.png"
+            src="/images/logopng.png"
             alt="Logo Codemind"
             width={160}
             height={48}

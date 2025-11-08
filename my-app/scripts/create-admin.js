@@ -7,7 +7,7 @@ const bcrypt = require("bcryptjs");
   const prisma = new PrismaClient();
   try {
     const email = process.env.TEST_ADMIN_EMAIL || "admin@exemplo.com";
-    const senha = process.env.TEST_ADMIN_PASS || "senha123";
+    const senha = process.env.TEST_ADMIN_PASS || "123";
     const hash = bcrypt.hashSync(senha, 10);
 
     // try to find existing
@@ -20,7 +20,7 @@ const bcrypt = require("bcryptjs");
 
     const created = await prisma.administrador.create({
       data: {
-        nome: "Admin Test",
+        nome: "Admin",
         email: email.toLowerCase(),
         senha: hash,
       },

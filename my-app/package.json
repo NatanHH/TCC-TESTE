@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:legacy": "cross-env NEXT_DISABLE_TURBOPACK=1 next build"
+    "build:legacy": "cross-env NEXT_DISABLE_TURBOPACK=1 next build",
+    "prisma:generate": "prisma generate",
+    "create-admin": "ts-node prisma/seed-admin.ts",
+    "seed:admin": "npm run prisma:generate && npm run create-admin"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",

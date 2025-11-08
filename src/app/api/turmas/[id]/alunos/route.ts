@@ -1,10 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "../../../../../lib/prisma";
-import type { NextApiRequest, NextApiResponse } from "next";
 
 export const runtime = "nodejs";
 
 type RouteContext = { params?: { id?: string } };
+
+export async function GET(req: NextRequest, context: RouteContext) {
+  const paramsResolved = await Promise.resolve(context?.params);
+  const turmaId =
+    typeof paramsResolved?.id === "string"
+      ? Number(paramsResolved.id)
+      : undefined;
+  if (!turmaId)
+    return NextResponse.json({ error: "Missing turma id" }, { status: 400 });
+
+  try {
+    const alunos = await prisma.turmaAluno.findMany({
+      where: { idTurma: turmaId },
+      include: {
+        aluno: {
+          select: {
+            idAluno: true,
+            nome: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Retorna no formato que o componente DesempenhoAlunos espera
+    return NextResponse.json(alunos, { status: 200 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("GET /turmas/[id]/alunos error:", message);
+    const bodyErr =
+      process.env.NODE_ENV === "production"
+        ? { error: "internal" }
+        : { error: message };
+    return NextResponse.json(bodyErr, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest, context: RouteContext) {
   const paramsResolved = await Promise.resolve(context?.params);
@@ -67,13 +102,4 @@ export async function POST(req: NextRequest, context: RouteContext) {
         : { error: message };
     return NextResponse.json(bodyErr, { status: 500 });
   }
-}
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  res.setHeader("Allow", "POST,GET,OPTIONS");
-  if (req.method !== "POST") return res.status(405).end("Method not allowed");
-  // ...implemente aqui...
 }

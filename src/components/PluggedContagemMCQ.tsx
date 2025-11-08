@@ -62,9 +62,6 @@ export default function PluggedContagemMCQ({
   const [score, setScore] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [lastCorrectValue, setLastCorrectValue] = useState<number | null>(null);
-  const [derivedAtividadeId, setDerivedAtividadeId] = useState<number | null>(
-    null
-  );
 
   // ✅ Estado para indicar modo teste (professor testando sem salvar)
   const [isTestMode, setIsTestMode] = useState<boolean>(false);
@@ -145,8 +142,7 @@ export default function PluggedContagemMCQ({
         (a) => a.id === selectedId
       );
       const payloadToSend = {
-        // use derivedAtividadeId as fallback quando a prop não for fornecida
-        idAtividade: atividadeId ?? derivedAtividadeId ?? null,
+        idAtividade: atividadeId ?? null,
         idAluno: alunoId ?? null,
         idTurma: turmaId ?? null,
         seed: payload.instance.seed ?? null,
@@ -240,7 +236,7 @@ export default function PluggedContagemMCQ({
     return <div style={{ color: "#fff" }}>Carregando atividade...</div>;
 
   // ✅ Se não houver atividade definida, não mostrar seleção (alunos sempre recebem atividadeId)
-  if ((atividadeId ?? derivedAtividadeId) == null) {
+  if (atividadeId == null) {
     return (
       <div
         style={{ maxWidth: 680, margin: "0 auto", padding: 20, color: "#fff" }}

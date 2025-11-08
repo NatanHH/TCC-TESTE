@@ -7,6 +7,20 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import DesempenhoAlunos from "../../components/DesempenhoAlunos";
 
+// Expose typed helper on window for debug/dev usage without using `any`.
+declare global {
+  interface Window {
+    openAlunoDetalhes?: (
+      alunoObj?: {
+        idAluno?: number;
+        nome?: string | null;
+        email?: string | null;
+      } | null,
+      idFallback?: number | null
+    ) => Promise<void>;
+  }
+}
+
 // Load the MCQ component dynamically (client component)
 type PluggedContagemMCQProps = {
   fetchEndpoint: string;
@@ -1800,8 +1814,7 @@ export default function PageProfessor() {
                     onClick={() =>
                       // call the helper we attached to window in the effect above
                       // it will open a modal with aluno details
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      (window as any).openAlunoDetalhes(
+                      void window.openAlunoDetalhes?.(
                         respostaDetalhe.aluno,
                         respostaDetalhe.idAluno
                       )

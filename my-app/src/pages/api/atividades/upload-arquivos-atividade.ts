@@ -5,8 +5,11 @@ import type {
   Response as ExpressResponse,
 } from "express";
 import multer from "multer";
-import path from "path";
-import cloudinary from "cloudinary";
+import {
+  v2 as cloudinaryV2,
+  UploadApiResponse,
+  UploadApiErrorResponse,
+} from "cloudinary";
 import crypto from "crypto";
 import prisma from "../../../lib/prisma";
 import type { AtividadeArquivo } from "@prisma/client";
@@ -22,28 +25,33 @@ const storage = multer.memoryStorage();
 
 // configure cloudinary from CLOUDINARY_URL or individual env vars
 try {
-  cloudinary.v2.config(
-    process.env.CLOUDINARY_URL
-      ? { cloudinary_url: process.env.CLOUDINARY_URL }
-      : ({
-          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-          api_key: process.env.CLOUDINARY_API_KEY,
-          api_secret: process.env.CLOUDINARY_API_SECRET,
-        } as any)
-  );
-} catch (e) {
+  if (process.env.CLOUDINARY_URL) {
+    cloudinaryV2.config({ cloudinary_url: process.env.CLOUDINARY_URL });
+  } else {
+    cloudinaryV2.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+  }
+} catch {
   // ignore - will throw at upload time if misconfigured
 }
 
-function uploadBufferToCloudinary(buffer: Buffer) {
-  return new Promise<any>((resolve, reject) => {
+function uploadBufferToCloudinary(buffer: Buffer): Promise<UploadApiResponse> {
+  return new Promise<UploadApiResponse>((resolve, reject) => {
     const publicId = `atividades/${Date.now()}-${crypto
       .randomBytes(6)
       .toString("hex")}`;
-    const stream = (cloudinary as any).v2.uploader.upload_stream(
+    const stream = cloudinaryV2.uploader.upload_stream(
       { folder: "atividades", resource_type: "auto", public_id: publicId },
-      (error: any, result: any) => {
+      (
+        error: UploadApiErrorResponse | undefined,
+        result: UploadApiResponse | undefined
+      ) => {
         if (error) return reject(error);
+        if (!result)
+          return reject(new Error("No result returned from Cloudinary"));
         resolve(result);
       }
     );
@@ -157,10 +165,12 @@ export default async function handler(
       }
 
       try {
-        const buf = (f as any).buffer as Buffer;
+        const buf = (f as Express.Multer.File & { buffer?: Buffer }).buffer as
+          | Buffer
+          | undefined;
         if (!buf) throw new Error("No buffer available for file");
         const uploadRes = await uploadBufferToCloudinary(buf);
-        const secureUrl = uploadRes?.secure_url ?? uploadRes?.url;
+        const secureUrl = uploadRes.secure_url ?? uploadRes.url;
         if (!secureUrl) throw new Error("No URL returned from Cloudinary");
 
         const record = await prisma.atividadeArquivo.create({

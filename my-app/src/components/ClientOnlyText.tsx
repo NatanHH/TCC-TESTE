@@ -21,7 +21,18 @@ export default function ClientOnlyText(props: Props) {
     const { getText, fallback = "—" } = props;
     try {
       const val = getText?.() ?? fallback;
-      return <>{val}</>;
+      // Defensive: ensure we never return a raw plain object as a React child.
+      // If getText unexpectedly returned an object, coerce it to a safe string.
+      if (React.isValidElement(val)) return <>{val}</>;
+      if (val === null || val === undefined) return <>{fallback}</>;
+      if (typeof val === "object") {
+        try {
+          return <>{JSON.stringify(val)}</>;
+        } catch {
+          return <>{String(val)}</>;
+        }
+      }
+      return <>{String(val)}</>;
     } catch {
       return <>{fallback}</>;
     }

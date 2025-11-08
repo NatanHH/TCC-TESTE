@@ -1,5 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import prisma from "../../lib/prisma";
+import type {
+  AtividadeTurma,
+  Atividade as PrismaAtividade,
+  AtividadeArquivo,
+  Turma,
+  Professor,
+} from "@prisma/client";
+
+// Narrowed shape for atividadeTurma when `include` is used in queries below.
+type AplicacaoWithIncludes = AtividadeTurma & {
+  atividade: PrismaAtividade & { arquivos: AtividadeArquivo[] };
+  turma: Turma | null;
+  professor: Professor | null;
+};
 
 export default async function handler(
   req: NextApiRequest,
@@ -25,7 +39,7 @@ export default async function handler(
       // searching AtividadeTurma where the turma has the aluno in its alunos relation.
       // This guards against cases where the turmaAluno lookup unexpectedly returns
       // nothing due to data inconsistencies or subtle type differences.
-      let aplicacoes: any[] = [];
+      let aplicacoes: AplicacaoWithIncludes[] = [];
       if (turmaIds.length > 0) {
         aplicacoes = await prisma.atividadeTurma.findMany({
           where: { idTurma: { in: turmaIds } },
@@ -61,7 +75,7 @@ export default async function handler(
       }
 
       // map to atividade summary shape expected by the client
-      const resultados = aplicacoes.map((ap) => {
+      const resultados = aplicacoes.map((ap: AplicacaoWithIncludes) => {
         const at = ap.atividade;
         return {
           idAtividade: at.idAtividade,
@@ -75,7 +89,7 @@ export default async function handler(
           turma: ap.turma
             ? { idTurma: ap.turma.idTurma, nome: ap.turma.nome }
             : null,
-          arquivos: (at.arquivos || []).map((f: any) => ({
+          arquivos: (at.arquivos || []).map((f: AtividadeArquivo) => ({
             idArquivo: f.idArquivo,
             url: f.url,
             tipoArquivo: f.tipoArquivo ?? null,
@@ -99,7 +113,7 @@ export default async function handler(
       nota: at.nota ?? null,
       dataAplicacao: null,
       turma: null,
-      arquivos: (at.arquivos || []).map((f: any) => ({
+      arquivos: (at.arquivos || []).map((f: AtividadeArquivo) => ({
         idArquivo: f.idArquivo,
         url: f.url,
         tipoArquivo: f.tipoArquivo ?? null,

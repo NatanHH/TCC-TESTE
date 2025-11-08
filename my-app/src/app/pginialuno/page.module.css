@@ -6,38 +6,6 @@
   font-family: Arial, sans-serif;
 }
 
-/* ====== Small entrance animations (paralelo à versão do professor) ====== */
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes modalScale {
-  from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.985);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Entrance animation for aluno cards and modals */
-.card {
-  will-change: transform, opacity;
-  animation: fadeUp 300ms ease both;
-}
-.modalActive .modalContent {
-  animation: modalScale 320ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-}
-
 .paginaAlunoAside {
   width: 250px;
   background-color: #2b1544;

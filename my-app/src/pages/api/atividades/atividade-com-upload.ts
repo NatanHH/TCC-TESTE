@@ -224,8 +224,14 @@ export default async function handler(
         });
         createdFiles.push(rec);
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error("Erro ao processar/upload arquivo:", msg);
+        let errLog: string;
+        try {
+          if (e instanceof Error) errLog = e.message;
+          else errLog = JSON.stringify(e, Object.getOwnPropertyNames(e));
+        } catch {
+          errLog = String(e);
+        }
+        console.error("Erro ao processar/upload arquivo:", errLog, e);
         errors.push({
           filename: f.originalname,
           message: "Erro ao salvar no banco ou upload",

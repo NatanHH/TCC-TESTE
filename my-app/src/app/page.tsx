@@ -71,8 +71,8 @@ export default function LoginAdm() {
           src="/images/logopng.png"
           alt="codemind logo"
           className="logo"
-          width={200}
-          height={200}
+          width={224}
+          height={224}
         />
         <h2>Login Administrador</h2>
 

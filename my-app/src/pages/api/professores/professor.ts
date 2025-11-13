@@ -72,28 +72,59 @@ export default async function handler(
       return res.status(400).json({ error: "Payload inválido" });
     }
     const body = payload as Record<string, unknown>;
-    const idProfessor = Number(body.idProfessor);
-    if (!idProfessor || Number.isNaN(idProfessor)) {
-      return res
-        .status(400)
-        .json({ error: "idProfessor obrigatório e numérico." });
-    }
 
-    const updateData: Record<string, unknown> = {};
-    if (typeof body.nome === "string" && body.nome.trim().length > 0)
-      updateData.nome = body.nome.trim();
-    if (typeof body.email === "string" && body.email.trim().length > 0)
-      updateData.email = body.email.trim();
-    if (typeof body.senha === "string" && body.senha.length > 0)
-      updateData.senha = body.senha;
+    // Exigir identEmail e senhaAtual para validação de identidade
+    const identEmail =
+      typeof body.identEmail === "string" && body.identEmail.trim()
+        ? body.identEmail.trim()
+        : undefined;
+    const senhaAtual =
+      typeof body.senhaAtual === "string" && body.senhaAtual.length > 0
+        ? body.senhaAtual
+        : undefined;
 
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ error: "Nenhum campo para atualizar." });
+    if (!identEmail || !senhaAtual) {
+      return res.status(400).json({
+        error:
+          "identEmail e senhaAtual são obrigatórios para editar professor.",
+      });
     }
 
     try {
+      // Buscar professor pelo email
+      const professor = await prisma.professor.findUnique({
+        where: { email: identEmail },
+        select: { idProfessor: true, senha: true, email: true, nome: true },
+      });
+
+      if (!professor) {
+        return res.status(404).json({
+          error: "Professor não encontrado com este email.",
+        });
+      }
+
+      // Validar senha atual
+      if (professor.senha !== senhaAtual) {
+        return res.status(401).json({
+          error: "Senha atual incorreta. Não é possível editar.",
+        });
+      }
+
+      // Preparar dados para atualização
+      const updateData: Record<string, unknown> = {};
+      if (typeof body.nome === "string" && body.nome.trim().length > 0)
+        updateData.nome = body.nome.trim();
+      if (typeof body.email === "string" && body.email.trim().length > 0)
+        updateData.email = body.email.trim();
+      if (typeof body.senha === "string" && body.senha.length > 0)
+        updateData.senha = body.senha;
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: "Nenhum campo para atualizar." });
+      }
+
       const professorAtualizado = await prisma.professor.update({
-        where: { idProfessor },
+        where: { idProfessor: professor.idProfessor },
         data: updateData,
       });
       return res.status(200).json(professorAtualizado);
@@ -110,20 +141,92 @@ export default async function handler(
       return res.status(400).json({ error: "Payload inválido" });
     }
     const body = payload as Record<string, unknown>;
-    const idProfessor = Number(body.idProfessor);
-    if (!idProfessor || Number.isNaN(idProfessor)) {
-      return res
-        .status(400)
-        .json({ error: "idProfessor obrigatório e numérico." });
-    }
-    try {
-      await prisma.professor.delete({
-        where: { idProfessor },
+
+    // Exigir apenas identEmail para identificar o professor
+    const identEmail =
+      typeof body.identEmail === "string" && body.identEmail.trim()
+        ? body.identEmail.trim()
+        : undefined;
+
+    if (!identEmail) {
+      return res.status(400).json({
+        error: "identEmail é obrigatório para excluir professor.",
       });
+    }
+
+    try {
+      // Buscar professor pelo email
+      const professor = await prisma.professor.findUnique({
+        where: { email: identEmail },
+        select: { idProfessor: true, email: true, nome: true },
+      });
+
+      if (!professor) {
+        return res.status(404).json({
+          error: "Professor não encontrado com este email.",
+        });
+      }
+
+      // Excluir em cascata - primeiro as relações, depois o professor
+      const profId = professor.idProfessor;
+
+      // 1. Deletar AtividadeProfessor (relação professor-atividade)
+      await prisma.atividadeProfessor.deleteMany({
+        where: { idProfessor: profId },
+      });
+
+      // 2. Deletar AtividadeTurma (aplicações de atividades nas turmas do professor)
+      await prisma.atividadeTurma.deleteMany({
+        where: { idProfessor: profId },
+      });
+
+      // 3. Para cada turma do professor, deletar TurmaAluno e depois a Turma
+      const turmas = await prisma.turma.findMany({
+        where: { professorId: profId },
+        select: { idTurma: true },
+      });
+
+      for (const turma of turmas) {
+        // Deletar alunos da turma
+        await prisma.turmaAluno.deleteMany({
+          where: { idTurma: turma.idTurma },
+        });
+
+        // Deletar relações AtividadeTurma desta turma
+        await prisma.atividadeTurma.deleteMany({
+          where: { idTurma: turma.idTurma },
+        });
+      }
+
+      // 4. Deletar as turmas do professor
+      await prisma.turma.deleteMany({
+        where: { professorId: profId },
+      });
+
+      // 5. Remover professorId das atividades (deixar null)
+      await prisma.atividade.updateMany({
+        where: { professorId: profId },
+        data: { professorId: null },
+      });
+
+      // 6. Finalmente, deletar o professor
+      await prisma.professor.delete({
+        where: { idProfessor: profId },
+      });
+
       return res.status(204).end();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("DELETE /api/professores/professor error:", msg);
+
+      // Se for erro de constraint (professor tem turmas), retornar mensagem clara
+      if (msg.includes("Foreign key constraint")) {
+        return res.status(400).json({
+          error:
+            "Não é possível excluir este professor pois ele possui turmas vinculadas. Delete as turmas primeiro.",
+        });
+      }
+
       return res.status(400).json({ error: msg });
     }
   }

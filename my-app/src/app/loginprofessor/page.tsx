@@ -53,8 +53,8 @@ export default function LoginProfessor() {
           src="/images/logopng.png"
           alt="codemind logo"
           className="logo"
-          width={200}
-          height={200}
+          width={224}
+          height={224}
           priority
         />
         <h2>Login Professor</h2>

@@ -72,7 +72,22 @@ console.log("Cloudinary env presence:", {
   CLOUDINARY_API_SECRET: !!process.env.CLOUDINARY_API_SECRET,
 });
 
+const CLOUDINARY_AVAILABLE = !!(
+  process.env.CLOUDINARY_URL ||
+  (process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET &&
+    process.env.CLOUDINARY_CLOUD_NAME)
+);
+
 function uploadBufferToCloudinary(buffer: Buffer): Promise<UploadApiResponse> {
+  if (!CLOUDINARY_AVAILABLE) {
+    return Promise.reject(
+      new Error(
+        "Cloudinary não está configurado. Defina CLOUDINARY_URL ou CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET/CLOUDINARY_CLOUD_NAME"
+      )
+    );
+  }
+
   return new Promise<UploadApiResponse>((resolve, reject) => {
     const publicId = `atividades/${Date.now()}-${crypto
       .randomBytes(6)

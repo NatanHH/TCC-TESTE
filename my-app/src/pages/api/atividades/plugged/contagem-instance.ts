@@ -41,23 +41,25 @@ function buildInstanceFromSeed(seed: number) {
   const bits = cards.map(() => (rand() > 0.5 ? 1 : 0));
   const decimal = bits.reduce<number>((acc, b, i) => acc + b * cards[i], 0);
 
-  // build 4 alternativas próximas, embaralhadas
-  const opts = new Set<number>();
-  opts.add(decimal);
-  while (opts.size < 4) {
-    const delta = Math.floor((rand() - 0.5) * 6); // -3..+2
-    opts.add(Math.max(0, decimal + delta));
+  // Gerar 3 valores diferentes para as alternativas incorretas
+  const wrongValues = new Set<number>();
+  while (wrongValues.size < 3) {
+    const delta = Math.floor((rand() - 0.5) * 8); // -4..+3
+    const wrongValue = Math.max(0, Math.min(15, decimal + delta)); // mantém entre 0-15
+    if (wrongValue !== decimal) {
+      wrongValues.add(wrongValue);
+    }
   }
-  const alternatives = Array.from(opts).map((v, i) => ({
+
+  // Alternativa A sempre correta, B, C, D incorretas
+  const letters = ["A", "B", "C", "D"];
+  const values = [decimal, ...Array.from(wrongValues)];
+  const alternatives = letters.map((letter, i) => ({
     id: `opt${i}`,
-    value: v,
-    label: String(v),
+    value: values[i],
+    label: letter,
+    correct: i === 0, // apenas A é correta
   }));
-  // shuffle alternatives deterministically
-  for (let i = alternatives.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [alternatives[i], alternatives[j]] = [alternatives[j], alternatives[i]];
-  }
 
   return {
     cards,

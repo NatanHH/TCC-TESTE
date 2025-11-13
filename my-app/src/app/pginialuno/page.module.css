@@ -1,13 +1,52 @@
 .paginaAlunoBody {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #0f0f2d;
   color: white;
   font-family: Arial, sans-serif;
+  flex-direction: row;
+}
+
+.paginaAlunoBody > main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ====== Small entrance animations (paralelo ao professor) ====== */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalScale {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Entrance animation for aluno cards and modals */
+.card {
+  will-change: transform, opacity;
+  animation: fadeUp 300ms ease both;
+}
+.modalActive .modalContent {
+  animation: modalScale 320ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
 .paginaAlunoAside {
-  width: 250px;
+  width: 320px;
   background-color: #2b1544;
   padding: 20px;
   display: flex;
@@ -20,7 +59,8 @@
   margin-bottom: 30px;
 }
 .logoImg {
-  width: 80px;
+  width: 224px;
+  max-width: 100%;
   margin-bottom: 10px;
 }
 
@@ -159,6 +199,14 @@
   color: white;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   cursor: pointer;
+}
+
+/* Wrapper para centralizar lista de atividades (aluno) */
+.listaAtividadesWrapper {
+  width: 100%;
+  max-width: 900px; /* aluno vê cards um pouco maiores */
+  padding-top: 18px;
+  margin: 0 auto;
 }
 .card h2 {
   margin-top: 0;

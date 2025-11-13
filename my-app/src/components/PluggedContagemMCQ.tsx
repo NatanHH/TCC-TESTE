@@ -104,7 +104,6 @@ export default function PluggedContagemMCQ({
 
   async function handleSubmitAttempt() {
     if (!payload || selectedId === null) {
-      alert("Escolha uma alternativa antes de enviar.");
       return;
     }
     setSaving(true);
@@ -423,10 +422,6 @@ export default function PluggedContagemMCQ({
             Bits (esquerda → direita):{" "}
             <strong style={{ color: "#fff" }}>{bits.join("")}</strong>
           </div>
-          <div style={{ marginTop: 8 }}>
-            Calcule o valor decimal correspondente e escolha a alternativa
-            correta.
-          </div>
         </div>
       </div>
 
@@ -464,16 +459,17 @@ export default function PluggedContagemMCQ({
               }}
               aria-pressed={chosen}
             >
-              <div style={{ textAlign: "left" }}>
+              <div style={{ textAlign: "center" }}>
                 <div
                   style={{
-                    fontSize: 13,
-                    color: showCorrect || showWrong ? "#042027" : "#cfc6e6",
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: showCorrect || showWrong ? "#042027" : "#fff",
                   }}
                 >
                   {alt.label}
                 </div>
-                <div style={{ fontSize: 18 }}>{alt.value}</div>
+                <div style={{ fontSize: 18, marginTop: 4 }}>{alt.value}</div>
               </div>
             </button>
           );

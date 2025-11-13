@@ -4,6 +4,7 @@ import styles from "./page.module.css";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import ClientOnlyText from "../../components/ClientOnlyText";
+import Footer from "../../components/Footer";
 
 // Dynamically load the plugged MCQ component (client-only)
 type PluggedContagemMCQProps = {
@@ -677,8 +678,8 @@ export default function Page(): JSX.Element {
             className={styles.logoImg}
             src="/images/logopng.png"
             alt="Logo Codemind"
-            width={160}
-            height={48}
+            width={224}
+            height={67}
           />
         </div>
 
@@ -772,7 +773,10 @@ export default function Page(): JSX.Element {
           </div>
         </div>
 
-        <div style={{ width: "100%", maxWidth: 880, marginTop: 18 }}>
+        <div
+          className={styles.listaAtividadesWrapper}
+          style={{ marginTop: 18 }}
+        >
           {loading && <p style={{ color: "#fff" }}>Carregando atividades...</p>}
 
           {!loading && atividades.length === 0 && !atividadeSelecionada && (
@@ -1189,6 +1193,7 @@ export default function Page(): JSX.Element {
             </div>
           </div>
         </div>
+        <Footer />
       </main>
     </div>
   );

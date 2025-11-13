@@ -1,11 +1,11 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
-import React from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import DesempenhoAlunos from "../../components/DesempenhoAlunos";
+import Footer from "../../components/Footer";
 
 // Expose typed helper on window for debug/dev usage without using `any`.
 declare global {
@@ -1316,8 +1316,8 @@ export default function PageProfessor() {
             className={styles.logoImg}
             src="/images/logopng.png"
             alt="Logo Codemind"
-            width={160}
-            height={48}
+            width={224}
+            height={67}
           />
         </div>
         <h2>Minhas Turmas</h2>
@@ -1468,7 +1468,7 @@ export default function PageProfessor() {
               Carregando atividades...
             </p>
           ) : (
-            <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+            <div className={styles.listaAtividadesWrapper}>
               <ul style={{ padding: 0, margin: 0 }}>
                 {(turmaSelecionada ? atividadesTurma : atividades).map(
                   (atividade) => (
@@ -2087,6 +2087,7 @@ export default function PageProfessor() {
             </div>
           </div>
         </div>
+        <Footer />
       </main>
     </div>
   );

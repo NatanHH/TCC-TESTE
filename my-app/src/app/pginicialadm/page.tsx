@@ -2,6 +2,7 @@
 import React, { useState, useEffect, ChangeEvent } from "react";
 import styles from "./page.module.css";
 import Image from "next/image";
+import Footer from "../../components/Footer";
 
 /**
  * PainelAdm (com CRUD completo de Atividades e CRUD básico de Professores)
@@ -65,6 +66,7 @@ export default function PainelAdm() {
   );
   const [editFormData, setEditFormData] = useState({
     nome: "",
+    senhaAtual: "",
     senha: "",
     confirmarSenha: "",
   });
@@ -172,6 +174,12 @@ export default function PainelAdm() {
 
   async function handleEditSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!editFormData.senhaAtual) {
+      alert("Por favor, informe a senha atual para confirmar a edição.");
+      return;
+    }
+
     if (editFormData.senha !== editFormData.confirmarSenha) {
       alert("As senhas não coincidem!");
       return;
@@ -180,8 +188,10 @@ export default function PainelAdm() {
       const res = await fetch("/api/professores/professor", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        // Enviar identEmail, senhaAtual (validação) e os novos dados
         body: JSON.stringify({
-          idProfessor: editingProfessor?.idProfessor,
+          identEmail: editingProfessor?.email,
+          senhaAtual: editFormData.senhaAtual,
           nome: editFormData.nome,
           senha: editFormData.senha,
         }),
@@ -208,12 +218,29 @@ export default function PainelAdm() {
   }
 
   async function handleExcluirProfessor(id: number) {
-    if (!confirm("Tem certeza que deseja excluir este professor?")) return;
+    // Find professor object to extract email
+    const prof = professores.find((p) => p.idProfessor === id);
+    if (!prof) {
+      alert("Professor não encontrado (localmente).");
+      return;
+    }
+
+    // Confirmação simples com aviso sobre exclusão em cascata
+    if (
+      !confirm(
+        `Tem certeza que deseja excluir o professor "${prof.nome}"?\n\nIsto irá excluir também todas as turmas e relações deste professor.`
+      )
+    ) {
+      return;
+    }
+
     try {
       const res = await fetch("/api/professores/professor", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idProfessor: id }),
+        body: JSON.stringify({
+          identEmail: prof.email,
+        }),
       });
       const text = await res.text().catch(() => "");
       const data = (() => {
@@ -434,9 +461,7 @@ export default function PainelAdm() {
               upRes.status,
               upText
             );
-            alert(
-              "Atividade atualizada, mas falha no upload dos novos arquivos. Veja console."
-            );
+            alert("Erro no upload ao atualizar atividade. Veja console.");
             // continue; activity was already updated
           } else {
             console.log("Arquivos enviados/atualizados com sucesso.");
@@ -524,8 +549,8 @@ export default function PainelAdm() {
             className={styles.logoImg}
             src="/images/logopng.png"
             alt="Logo Codemind"
-            width={160}
-            height={48}
+            width={224}
+            height={67}
           />
         </div>
         <h2>Minhas Funções</h2>
@@ -568,8 +593,8 @@ export default function PainelAdm() {
                 unoptimized
               />
               <div className={styles.userDetails}>
-                <span className={styles.userName}>ADM</span>
-                <span className={styles.userEmail}>adm@exemplo.com</span>
+                <span className={styles.userName}>Administrador</span>
+                <span className={styles.userEmail}>admin@exemplo.com</span>
               </div>
             </div>
             <div
@@ -579,18 +604,12 @@ export default function PainelAdm() {
             >
               <h3>Detalhes do ADM</h3>
               <p>
-                <strong>Nome:</strong> ADM
+                <strong>Nome:</strong> Administrador
               </p>
               <p>
-                <strong>Email:</strong> adm@exemplo.com
+                <strong>Email:</strong> admin@exemplo.com
               </p>
-              <p>
-                <strong>ID:</strong> A001
-              </p>
-              <button onClick={() => alert("Gerenciar conta clicado!")}>
-                Gerenciar Conta
-              </button>
-              <button onClick={() => alert("Sair clicado!")}>Sair</button>
+              <button onClick={() => (window.location.href = "/")}>Sair</button>
             </div>
           </div>
         </div>
@@ -641,6 +660,7 @@ export default function PainelAdm() {
                             setEditingProfessor(prof);
                             setEditFormData({
                               nome: prof.nome,
+                              senhaAtual: "",
                               senha: "",
                               confirmarSenha: "",
                             });
@@ -785,6 +805,20 @@ export default function PainelAdm() {
                 style={{ backgroundColor: "#eee", color: "#999" }}
               />
               <input
+                name="senhaAtual"
+                type="password"
+                placeholder="Senha Atual (para confirmar)"
+                required
+                value={editFormData.senhaAtual}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    [e.target.name]: e.target.value,
+                  })
+                }
+                className={styles.input}
+              />
+              <input
                 name="senha"
                 type="password"
                 placeholder="Nova Senha"
@@ -871,7 +905,6 @@ export default function PainelAdm() {
                 onChange={handleFormAtividadeChange}
                 className={styles.input}
               >
-                <option value="PLUGGED">Plugged</option>
                 <option value="UNPLUGGED">Unplugged</option>
               </select>
               <input
@@ -1043,6 +1076,7 @@ export default function PainelAdm() {
             </button>
           </div>
         )}
+        <Footer />
       </main>
     </div>
   );
